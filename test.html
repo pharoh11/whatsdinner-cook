@@ -44,6 +44,7 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
 <a class="test" id="J2" aria-disabled="true"><b>J2</b>Video + photo, photo not attached to the video<span>Preparing…</span></a>
 <a class="test" id="J3" aria-disabled="true"><b>J3</b>Photo only, no video<span>Preparing…</span></a>
 <a class="test" id="J4" aria-disabled="true"><b>J4</b>Video + photo, no steps<span>Preparing…</span></a>
+<a class="test" id="J5" aria-disabled="true"><b>J5</b>Closest to yours: video + photo + creator name, no servings or times<span>Preparing…</span></a>
 <p class="muted" style="margin-top:18px">And one to learn how cook mode reads a page:</p>
 <a class="test" id="H" aria-disabled="true"><b>H</b>No recipe labels at all (only the visible page)<span>Preparing…</span></a>
 
@@ -114,6 +115,7 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
   scones({ v: tok, x: { nothumb: true } }, 'J2');
   scones({}, 'J3');
   scones({ v: tok, r: [] }, 'J4');
+  scones({ v: tok, a: 'scone.kitchen', s: undefined }, 'J5');
   var withPhoto = Object.assign({}, R.shortRibs, { img: photo });
   packPlain(withPhoto).then(function (u) {
     arm('E', u, ' (photo ' + Math.round(photo.length * 0.75 / 1024) + ' KB)');
