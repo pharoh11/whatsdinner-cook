@@ -52,10 +52,14 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
     for (var i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
     return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
+  // Every test address asks the viewer for its grey test line (address length, how it was drawn).
+  function withDiag(o) { var c = Object.assign({}, o); c.x = Object.assign({ diag: true }, o.x || {}); return c; }
   function packPlain(obj) {
+    obj = withDiag(obj);
     return Promise.resolve(base + '#0.' + toBase64URL(new TextEncoder().encode(JSON.stringify(obj))));
   }
   function packSqueezed(obj) {
+    obj = withDiag(obj);
     var stream = new Blob([JSON.stringify(obj)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
     return new Response(stream).arrayBuffer().then(function (buf) { return base + '#1.' + toBase64URL(new Uint8Array(buf)); });
   }
