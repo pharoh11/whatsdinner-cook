@@ -101,7 +101,7 @@ li{margin:.35em 0}
     if (prep) ld.prepTime = isoDuration(prep);
     if (cook) ld.cookTime = isoDuration(cook);
     if (total) ld.totalTime = isoDuration(total);
-    // x = test switches (HomeView cook-mode experiments, 2026-11-14). Without x the labels are flat, as in tests A–E.
+    // x = test switches (HomeView cook-mode experiments, 2026-11-14). Without x: separators + step sections (below).
     var x = (r.x && typeof r.x === 'object') ? r.x : {};
     var allLines = [];
     groups.forEach(function (g) { (Array.isArray(g.l) ? g.l : []).forEach(function (l) { if (str(l)) allLines.push(str(l)); }); });
@@ -119,7 +119,12 @@ li{margin:.35em 0}
         if (x.groups === 'section') return { '@type': 'HowToSection', name: g.g, itemListElement: lines };
         return { '@type': 'RecipeIngredientGroup', name: g.g, recipeIngredient: lines };
       }).reduce(function (a, b) { return a.concat(b); }, []);
-    } else if (x.sep && named.length) {
+    }
+    // Standard (Ash's pick, 2026-11-14, test F): with two or more ingredient sections, a "— FOR THE POLENTA —" line before each named
+    // one. HomeView's cook mode shows only a flat list of text lines: grouped shapes (G, G2–G4) left its ingredient list blank.
+    var filled = groups.filter(function (g) { return Array.isArray(g.l) && g.l.some(function (l) { return str(l); }); });
+    var sepStyle = x.sep || (filled.length >= 2 && named.length ? 'dashcaps' : null);
+    if (!(x.groups && named.length) && sepStyle !== 'none' && sepStyle && named.length) {
       // A separator line before each named group, so cook mode's single list still reads in parts.
       var styles = ['dash', 'caps', 'ascii'];
       labelLines = [];
@@ -128,7 +133,7 @@ li{margin:.35em 0}
         var lines = (Array.isArray(g.l) ? g.l : []).filter(function (l) { return str(l); });
         if (!lines.length) return;
         if (str(g.g)) {
-          var style = x.sep === 'mixed' ? styles[gi % 3] : x.sep;
+          var style = sepStyle === 'mixed' ? styles[gi % 3] : sepStyle;
           var name = str(g.g).trim();
           labelLines.push(style === 'dashcaps' ? '— ' + name.toUpperCase() + ' —'
             : style === 'caps' ? name.toUpperCase() : style === 'ascii' ? '---' + name + '---' : '— ' + name + ' —');
@@ -141,8 +146,9 @@ li{margin:.35em 0}
     var steps = [], position = 0;
     rows.forEach(function (row) { if (typeof row === 'string' && row) steps.push({ '@type': 'HowToStep', position: ++position, text: row }); });
     var hasHeadings = rows.some(function (row) { return row && typeof row === 'object' && str(row.h); });
-    if (steps.length && x.sections && hasHeadings) {
-      // Step sections the standard way (schema.org HowToSection).
+    if (steps.length && x.sections !== false && hasHeadings) {
+      // Step sections the standard way (schema.org HowToSection); in test F they kept cook mode working.
+      // Steps before the first heading go in a section called "Steps".
       var sections = [], current = null, pos = 0;
       rows.forEach(function (row) {
         if (row && typeof row === 'object' && str(row.h)) {
@@ -153,7 +159,7 @@ li{margin:.35em 0}
           current.itemListElement.push({ '@type': 'HowToStep', position: ++pos, text: row });
         }
       });
-      ld.recipeInstructions = sections;
+      ld.recipeInstructions = sections.filter(function (sec) { return sec.itemListElement.length; });
     } else if (steps.length) {
       ld.recipeInstructions = steps;
     }
