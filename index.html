@@ -101,12 +101,55 @@ li{margin:.35em 0}
     if (prep) ld.prepTime = isoDuration(prep);
     if (cook) ld.cookTime = isoDuration(cook);
     if (total) ld.totalTime = isoDuration(total);
+    // x = test switches (HomeView cook-mode experiments, 2026-11-14). Without x the labels are flat, as in tests A–E.
+    var x = (r.x && typeof r.x === 'object') ? r.x : {};
     var allLines = [];
     groups.forEach(function (g) { (Array.isArray(g.l) ? g.l : []).forEach(function (l) { if (str(l)) allLines.push(str(l)); }); });
-    if (allLines.length) ld.recipeIngredient = allLines;
+    var named = groups.filter(function (g) { return str(g.g) && Array.isArray(g.l) && g.l.some(function (l) { return str(l); }); });
+    var labelLines = allLines;
+    if (x.groups && named.length) {
+      // Draft schema.org idea (never adopted): groups inside the ingredient list.
+      labelLines = groups.map(function (g) {
+        var lines = (Array.isArray(g.l) ? g.l : []).filter(function (l) { return str(l); });
+        return str(g.g) ? { '@type': 'RecipeIngredientGroup', name: g.g, recipeIngredient: lines } : lines;
+      }).reduce(function (a, b) { return a.concat(b); }, []);
+    } else if (x.sep && named.length) {
+      // A separator line before each named group, so cook mode's single list still reads in parts.
+      var styles = ['dash', 'caps', 'ascii'];
+      labelLines = [];
+      var gi = 0;
+      groups.forEach(function (g) {
+        var lines = (Array.isArray(g.l) ? g.l : []).filter(function (l) { return str(l); });
+        if (!lines.length) return;
+        if (str(g.g)) {
+          var style = x.sep === 'mixed' ? styles[gi % 3] : x.sep;
+          var name = str(g.g).trim();
+          labelLines.push(style === 'caps' ? name.toUpperCase() : style === 'ascii' ? '---' + name + '---' : '— ' + name + ' —');
+          gi++;
+        }
+        labelLines = labelLines.concat(lines);
+      });
+    }
+    if (labelLines.length) ld.recipeIngredient = labelLines;
     var steps = [], position = 0;
     rows.forEach(function (row) { if (typeof row === 'string' && row) steps.push({ '@type': 'HowToStep', position: ++position, text: row }); });
-    if (steps.length) ld.recipeInstructions = steps;
+    var hasHeadings = rows.some(function (row) { return row && typeof row === 'object' && str(row.h); });
+    if (steps.length && x.sections && hasHeadings) {
+      // Step sections the standard way (schema.org HowToSection).
+      var sections = [], current = null, pos = 0;
+      rows.forEach(function (row) {
+        if (row && typeof row === 'object' && str(row.h)) {
+          current = { '@type': 'HowToSection', name: row.h, itemListElement: [] };
+          sections.push(current);
+        } else if (typeof row === 'string' && row) {
+          if (!current) { current = { '@type': 'HowToSection', name: 'Steps', itemListElement: [] }; sections.push(current); }
+          current.itemListElement.push({ '@type': 'HowToStep', position: ++pos, text: row });
+        }
+      });
+      ld.recipeInstructions = sections;
+    } else if (steps.length) {
+      ld.recipeInstructions = steps;
+    }
     var script = document.createElement('script');
     script.type = 'application/ld+json';
     script.id = 'recipe-ld';

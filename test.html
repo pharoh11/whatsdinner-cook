@@ -31,6 +31,11 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
 <a class="test" id="D" aria-disabled="true"><b>D</b>Long recipe (short ribs), plain address<span>Preparing…</span></a>
 <a class="test" id="E" aria-disabled="true"><b>E</b>Long recipe with a photo inside the address<span>Preparing…</span></a>
 
+<h1 style="margin-top:28px">Ingredient sections in cook mode</h1>
+<p>Same short-ribs recipe (3 ingredient sections, 4 step sections). In cook mode, look at the ingredient list and the steps.</p>
+<a class="test" id="F" aria-disabled="true"><b>F</b>Separator lines, three styles<span>Preparing…</span></a>
+<a class="test" id="G" aria-disabled="true"><b>G</b>Long shot: real groups (an unofficial format)<span>Preparing…</span></a>
+
 <script src="recipes.js"></script>
 <script>
 (function () {
@@ -81,6 +86,12 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
   packSqueezed(R.chili).then(function (u) { arm('B', u, ' · recipe appears just after the page loads'); });
   packPlain(R.chili).then(function (u) { arm('C', u, ' · recipe appears while the page loads'); });
   packPlain(R.shortRibs).then(function (u) { arm('D', u); });
+  packPlain(Object.assign({}, R.shortRibs, { x: { sep: 'mixed', sections: true } })).then(function (u) {
+    arm('F', u, ' \u00b7 sections: \u201c\u2014 For the short ribs \u2014\u201d, \u201cFOR THE POLENTA\u201d, \u201c---For the gremolata---\u201d; steps grouped the standard way');
+  });
+  packPlain(Object.assign({}, R.shortRibs, { x: { groups: true, sections: true } })).then(function (u) {
+    arm('G', u, ' \u00b7 if cook mode shows no ingredients or no Start Cooking, this format is out');
+  });
   var photo = testPhoto();
   var withPhoto = Object.assign({}, R.shortRibs, { img: photo });
   packPlain(withPhoto).then(function (u) {
