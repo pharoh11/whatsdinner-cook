@@ -108,10 +108,16 @@ li{margin:.35em 0}
     var named = groups.filter(function (g) { return str(g.g) && Array.isArray(g.l) && g.l.some(function (l) { return str(l); }); });
     var labelLines = allLines;
     if (x.groups && named.length) {
-      // Draft schema.org idea (never adopted): groups inside the ingredient list.
+      // Groups inside the ingredient list. 'draft' = the unadopted RecipeIngredientGroup idea (HomeView: blank list);
+      // 'itemlist' / 'listitem' = schema.org's own ItemList (allowed for recipeIngredient); 'section' = shaped like step sections.
       labelLines = groups.map(function (g) {
         var lines = (Array.isArray(g.l) ? g.l : []).filter(function (l) { return str(l); });
-        return str(g.g) ? { '@type': 'RecipeIngredientGroup', name: g.g, recipeIngredient: lines } : lines;
+        if (!str(g.g)) return lines;
+        if (x.groups === 'itemlist') return { '@type': 'ItemList', name: g.g, itemListElement: lines };
+        if (x.groups === 'listitem') return { '@type': 'ItemList', name: g.g, numberOfItems: lines.length,
+          itemListElement: lines.map(function (l, i) { return { '@type': 'ListItem', position: i + 1, name: l }; }) };
+        if (x.groups === 'section') return { '@type': 'HowToSection', name: g.g, itemListElement: lines };
+        return { '@type': 'RecipeIngredientGroup', name: g.g, recipeIngredient: lines };
       }).reduce(function (a, b) { return a.concat(b); }, []);
     } else if (x.sep && named.length) {
       // A separator line before each named group, so cook mode's single list still reads in parts.
@@ -124,7 +130,8 @@ li{margin:.35em 0}
         if (str(g.g)) {
           var style = x.sep === 'mixed' ? styles[gi % 3] : x.sep;
           var name = str(g.g).trim();
-          labelLines.push(style === 'caps' ? name.toUpperCase() : style === 'ascii' ? '---' + name + '---' : '— ' + name + ' —');
+          labelLines.push(style === 'dashcaps' ? '— ' + name.toUpperCase() + ' —'
+            : style === 'caps' ? name.toUpperCase() : style === 'ascii' ? '---' + name + '---' : '— ' + name + ' —');
           gi++;
         }
         labelLines = labelLines.concat(lines);
@@ -150,11 +157,13 @@ li{margin:.35em 0}
     } else if (steps.length) {
       ld.recipeInstructions = steps;
     }
-    var script = document.createElement('script');
-    script.type = 'application/ld+json';
-    script.id = 'recipe-ld';
-    script.textContent = JSON.stringify(ld);
-    document.head.appendChild(script);
+    if (!x.nolabels) {
+      var script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = 'recipe-ld';
+      script.textContent = JSON.stringify(ld);
+      document.head.appendChild(script);
+    }
 
     // The visible page (same layout as the page the app served from the phone in 58.44).
     var header = el('header');

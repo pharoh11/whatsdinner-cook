@@ -33,8 +33,13 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
 
 <h1 style="margin-top:28px">Ingredient sections in cook mode</h1>
 <p>Same short-ribs recipe (3 ingredient sections, 4 step sections). In cook mode, look at the ingredient list and the steps.</p>
-<a class="test" id="F" aria-disabled="true"><b>F</b>Separator lines, three styles<span>Preparing…</span></a>
-<a class="test" id="G" aria-disabled="true"><b>G</b>Long shot: real groups (an unofficial format)<span>Preparing…</span></a>
+<a class="test" id="F" aria-disabled="true"><b>F</b>Your pick: dashes + capitals<span>Preparing…</span></a>
+<p class="muted" style="margin-top:18px">Real ingredient groups, three more shapes (the first G showed a blank list):</p>
+<a class="test" id="G2" aria-disabled="true"><b>G2</b>Groups as schema.org named lists<span>Preparing…</span></a>
+<a class="test" id="G3" aria-disabled="true"><b>G3</b>Groups as named lists of numbered items<span>Preparing…</span></a>
+<a class="test" id="G4" aria-disabled="true"><b>G4</b>Groups shaped like the step sections<span>Preparing…</span></a>
+<p class="muted" style="margin-top:18px">And one to learn how cook mode reads a page:</p>
+<a class="test" id="H" aria-disabled="true"><b>H</b>No recipe labels at all (only the visible page)<span>Preparing…</span></a>
 
 <script src="recipes.js"></script>
 <script>
@@ -86,12 +91,12 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
   packSqueezed(R.chili).then(function (u) { arm('B', u, ' · recipe appears just after the page loads'); });
   packPlain(R.chili).then(function (u) { arm('C', u, ' · recipe appears while the page loads'); });
   packPlain(R.shortRibs).then(function (u) { arm('D', u); });
-  packPlain(Object.assign({}, R.shortRibs, { x: { sep: 'mixed', sections: true } })).then(function (u) {
-    arm('F', u, ' \u00b7 sections: \u201c\u2014 For the short ribs \u2014\u201d, \u201cFOR THE POLENTA\u201d, \u201c---For the gremolata---\u201d; steps grouped the standard way');
-  });
-  packPlain(Object.assign({}, R.shortRibs, { x: { groups: true, sections: true } })).then(function (u) {
-    arm('G', u, ' \u00b7 if cook mode shows no ingredients or no Start Cooking, this format is out');
-  });
+  function ribs(x, id, note) { packPlain(Object.assign({}, R.shortRibs, { x: x })).then(function (u) { arm(id, u, note); }); }
+  ribs({ sep: 'dashcaps', sections: true }, 'F', ' \u00b7 \u201c\u2014 FOR THE POLENTA \u2014\u201d; steps grouped the standard way');
+  ribs({ groups: 'itemlist', sections: true }, 'G2', ' \u00b7 the shape schema.org allows for ingredients');
+  ribs({ groups: 'listitem', sections: true }, 'G3');
+  ribs({ groups: 'section', sections: true }, 'G4');
+  ribs({ nolabels: true }, 'H', ' \u00b7 does Start Cooking still appear? if so, does it keep the sections?');
   var photo = testPhoto();
   var withPhoto = Object.assign({}, R.shortRibs, { img: photo });
   packPlain(withPhoto).then(function (u) {
