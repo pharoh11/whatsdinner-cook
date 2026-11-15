@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta name="referrer" content="no-referrer">
+<title>What's Dinner</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1c1c1e;--muted:#6e6e73;--rule:#e5e5ea}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--fg:#f2f2f7;--muted:#98989d;--rule:#2c2c2e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:18px/1.45 -apple-system,system-ui,sans-serif}
+header{padding:12px 16px 8px;text-align:center}
+h1{font-size:1.35em;margin:0 0 2px}
+.meta{color:var(--muted);font-size:.85em;margin:0}
+.diag{color:var(--muted);font-size:.7em;margin:4px 0 0}
+.photo{display:block;margin:0 auto;max-width:100%;max-height:calc(100svh - 120px);object-fit:contain;border-radius:14px}
+.watch{text-align:center;margin:10px 16px 0}
+.watch a{color:inherit}
+.hint{color:var(--muted);text-align:center;font-size:.85em;margin:10px 16px 0}
+article{max-width:720px;margin:0 auto;padding:8px 20px 40px}
+h2{border-top:1px solid var(--rule);padding-top:18px;margin-top:26px}
+h3{font-size:1em;color:var(--muted);margin:16px 0 4px}
+li{margin:.35em 0}
+.empty{font-size:20px;padding:48px 24px;text-align:center}
+</style>
+</head>
+<body>
+<main id="root"></main>
+<script>
+// What's Dinner — recipe viewer. The recipe travels in the address after "#"; browsers never send that part to this site,
+// and this page stores nothing. Every value is placed with textContent (never as HTML), so a crafted address can't inject markup.
+(function () {
+  'use strict';
+  var root = document.getElementById('root');
+  var NOTHING = 'Nothing to show here. In What’s Dinner, open a recipe and tap Show on HomeView.';
+
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = String(text);
+    return e;
+  }
+  function bytesFromBase64URL(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bin = atob(s), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function safeURL(u, allowDataImage) {
+    if (typeof u !== 'string') return null;
+    if (allowDataImage && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+\/=]+$/.test(u)) return u;
+    try { var x = new URL(u); return x.protocol === 'https:' ? x.href : null; } catch (e) { return null; }
+  }
+  function num(v) { return (typeof v === 'number' && isFinite(v) && v > 0) ? Math.round(v) : 0; }
+  function str(v) { return typeof v === 'string' ? v : ''; }
+  function plainDuration(m) {
+    var h = Math.floor(m / 60), r = m % 60;
+    if (h && r) return h + ' h ' + r + ' min';
+    if (h) return h + ' h';
+    return r + ' min';
+  }
+  function isoDuration(m) {
+    if (!m) return null;
+    var h = Math.floor(m / 60), r = m % 60, out = 'PT';
+    if (h) out += h + 'H';
+    if (r) out += r + 'M';
+    return out;
+  }
+
+  function clear() {
+    root.textContent = '';
+    var old = document.getElementById('recipe-ld');
+    if (old) old.remove();
+  }
+  function showEmpty(message, diag) {
+    clear();
+    document.title = "What's Dinner";
+    var p = el('p', 'empty', message);
+    root.appendChild(p);
+    if (diag) root.appendChild(el('p', 'diag empty', diag));
+  }
+
+  function render(r, diag) {
+    clear();
+    var title = str(r.t).trim() || 'Recipe';
+    var servings = num(r.s), prep = num(r.p), cook = num(r.c), total = num(r.m) || (prep && cook ? prep + cook : 0);
+    var photo = safeURL(r.img, true);
+    var groups = Array.isArray(r.i) ? r.i : [];
+    var rows = Array.isArray(r.r) ? r.r : [];
+    document.title = title;
+
+    // Labels Safari reads for its cook mode (schema.org Recipe).
+    var ld = { '@context': 'https://schema.org', '@type': 'Recipe', name: title, description: title };
+    if (photo) ld.image = [photo];
+    var handle = str(r.a).trim();
+    if (handle) ld.author = { '@type': 'Person', name: '@' + handle };
+    if (servings) ld.recipeYield = servings + ' servings';
+    if (prep) ld.prepTime = isoDuration(prep);
+    if (cook) ld.cookTime = isoDuration(cook);
+    if (total) ld.totalTime = isoDuration(total);
+    var allLines = [];
+    groups.forEach(function (g) { (Array.isArray(g.l) ? g.l : []).forEach(function (l) { if (str(l)) allLines.push(str(l)); }); });
+    if (allLines.length) ld.recipeIngredient = allLines;
+    var steps = [], position = 0;
+    rows.forEach(function (row) { if (typeof row === 'string' && row) steps.push({ '@type': 'HowToStep', position: ++position, text: row }); });
+    if (steps.length) ld.recipeInstructions = steps;
+    var script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'recipe-ld';
+    script.textContent = JSON.stringify(ld);
+    document.head.appendChild(script);
+
+    // The visible page (same layout as the page the app served from the phone in 58.44).
+    var header = el('header');
+    header.appendChild(el('h1', null, title));
+    var facts = [];
+    if (servings) facts.push('Serves ' + servings);
+    if (prep) facts.push('Prep ' + plainDuration(prep));
+    if (cook) facts.push('Cook ' + plainDuration(cook));
+    if (facts.length) header.appendChild(el('p', 'meta', facts.join(' · ')));
+    if (diag) header.appendChild(el('p', 'diag', diag));
+    root.appendChild(header);
+
+    if (photo) {
+      var img = el('img', 'photo');
+      img.src = photo;
+      img.alt = '';
+      root.appendChild(img);
+    }
+    var watch = safeURL(r.w, false);
+    if (watch) {
+      var wp = el('p', 'watch'), a = el('a', null, str(r.wl) || 'Watch the video');
+      a.href = watch;
+      a.rel = 'noreferrer';
+      wp.appendChild(a);
+      root.appendChild(wp);
+    }
+    root.appendChild(el('p', 'hint', 'Scroll down for the recipe, or use cook mode for one step at a time.'));
+
+    var article = el('article');
+    if (allLines.length) {
+      article.appendChild(el('h2', null, 'Ingredients'));
+      groups.forEach(function (g) {
+        var lines = (Array.isArray(g.l) ? g.l : []).filter(function (l) { return str(l); });
+        if (!lines.length) return;
+        if (str(g.g)) article.appendChild(el('h3', null, g.g));
+        var ul = el('ul');
+        lines.forEach(function (l) { ul.appendChild(el('li', null, l)); });
+        article.appendChild(ul);
+      });
+    }
+    if (steps.length) {
+      article.appendChild(el('h2', null, 'Steps'));
+      var ol = null, n = 0;
+      rows.forEach(function (row) {
+        if (row && typeof row === 'object' && str(row.h)) {
+          ol = null;
+          article.appendChild(el('h3', null, row.h));
+        } else if (typeof row === 'string' && row) {
+          if (!ol) { ol = el('ol'); if (n) ol.start = n + 1; article.appendChild(ol); }
+          n++;
+          ol.appendChild(el('li', null, row));
+        }
+      });
+    }
+    root.appendChild(article);
+  }
+
+  function load() {
+    var diag = 'Test · address ' + location.href.length.toLocaleString() + ' characters';
+    var m = /^#([01])\.([A-Za-z0-9_-]+)$/.exec(location.hash);
+    if (!m) { showEmpty(NOTHING, location.hash ? diag + ' · not a recipe address' : null); return; }
+    var bytes;
+    try { bytes = bytesFromBase64URL(m[2]); } catch (e) { showEmpty('This recipe address is damaged.', diag); return; }
+    if (m[1] === '0') {
+      // Format 0: plain (not squeezed). Drawn straight away, while the page loads.
+      try { render(JSON.parse(new TextDecoder().decode(bytes)), diag + ' · plain · drawn during load'); }
+      catch (e) { showEmpty('This recipe address is damaged.', diag); }
+      return;
+    }
+    // Format 1: squeezed (deflate). Unpacking finishes just after the page loads.
+    if (typeof DecompressionStream === 'undefined') { showEmpty('This browser can’t open this recipe address.', diag); return; }
+    new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text()
+      .then(function (text) { render(JSON.parse(text), diag + ' · squeezed · drawn after load'); })
+      .catch(function () { showEmpty('This recipe address is damaged.', diag); });
+  }
+
+  window.addEventListener('hashchange', load);
+  load();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>HomeView address test</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--fg:#1c1c1e;--muted:#6e6e73;--card:#f2f2f7;--accent:#e8590c}
+@media (prefers-color-scheme:dark){:root{--bg:#000;--fg:#f2f2f7;--muted:#98989d;--card:#1c1c1e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.45 -apple-system,system-ui,sans-serif;padding:20px 16px 48px;max-width:640px;margin:0 auto}
+h1{font-size:1.4em;margin:0 0 8px}
+p{margin:0 0 12px}
+.muted{color:var(--muted);font-size:.9em}
+a.test{display:block;text-decoration:none;color:inherit;background:var(--card);border-radius:14px;padding:14px 16px;margin:10px 0}
+a.test b{color:var(--accent);margin-right:6px}
+a.test span{display:block;color:var(--muted);font-size:.85em;margin-top:2px}
+a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
+</style>
+</head>
+<body>
+<h1>HomeView address test</h1>
+<p>For each letter: tap it on your iPhone, wait for the recipe to appear, then hold the iPhone up to HomeView the way you do now.</p>
+<p>On HomeView, note two things: <b>did the recipe appear</b> (with the small grey line under the title), and <b>did Safari offer cook mode</b>. Then come back to this page and try the next letter.</p>
+<p class="muted">The recipes are made up. Nothing you open here is stored anywhere; the recipe is inside the address.</p>
+
+<a class="test" id="A" href="control.html"><b>A</b>Normal recipe page (the comparison)<span>Turkey chili as an ordinary web page. Cook mode should work here, like it did from your phone.</span></a>
+<a class="test" id="B" aria-disabled="true"><b>B</b>Turkey chili, squeezed address<span>Preparing…</span></a>
+<a class="test" id="C" aria-disabled="true"><b>C</b>Turkey chili, plain address<span>Preparing…</span></a>
+<a class="test" id="D" aria-disabled="true"><b>D</b>Long recipe (short ribs), plain address<span>Preparing…</span></a>
+<a class="test" id="E" aria-disabled="true"><b>E</b>Long recipe with a photo inside the address<span>Preparing…</span></a>
+
+<script src="recipes.js"></script>
+<script>
+(function () {
+  'use strict';
+  var base = new URL('./', location.href).href;   // the viewer: index.html at the site root
+
+  function toBase64URL(bytes) {
+    var bin = '', chunk = 0x8000;
+    for (var i = 0; i < bytes.length; i += chunk) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function packPlain(obj) {
+    return Promise.resolve(base + '#0.' + toBase64URL(new TextEncoder().encode(JSON.stringify(obj))));
+  }
+  function packSqueezed(obj) {
+    var stream = new Blob([JSON.stringify(obj)]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    return new Response(stream).arrayBuffer().then(function (buf) { return base + '#1.' + toBase64URL(new Uint8Array(buf)); });
+  }
+  // A stand-in food photo drawn on the page (so no image file is published), saved as a JPEG about the size the app would send.
+  function testPhoto() {
+    var w = 720, h = 540, c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    var g = c.getContext('2d');
+    var bg = g.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#6b4f3a'); bg.addColorStop(1, '#2e2119');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#e9e1d4'; g.beginPath(); g.ellipse(w / 2, h / 2, 270, 210, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#8c2f1b'; g.beginPath(); g.ellipse(w / 2, h / 2, 225, 170, 0, 0, Math.PI * 2); g.fill();
+    var seed = 7;
+    function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+    var colors = ['#5a1a10', '#b5482a', '#3d2b1f', '#a3392a', '#f2e6c9', '#4f7a2a', '#d9a441'];
+    for (var i = 0; i < 2600; i++) {
+      var a = rnd() * Math.PI * 2, r = Math.sqrt(rnd());
+      var x = w / 2 + Math.cos(a) * r * 215, y = h / 2 + Math.sin(a) * r * 160;
+      g.fillStyle = colors[Math.floor(rnd() * colors.length)];
+      g.beginPath(); g.arc(x, y, 1.5 + rnd() * 5, 0, Math.PI * 2); g.fill();
+    }
+    return c.toDataURL('image/jpeg', 0.6);
+  }
+  function arm(id, url, extra) {
+    var a = document.getElementById(id);
+    a.href = url;
+    a.removeAttribute('aria-disabled');
+    a.querySelector('span').textContent = 'Address: ' + url.length.toLocaleString() + ' characters' + (extra || '');
+  }
+
+  var R = window.TEST_RECIPES;
+  packSqueezed(R.chili).then(function (u) { arm('B', u, ' · recipe appears just after the page loads'); });
+  packPlain(R.chili).then(function (u) { arm('C', u, ' · recipe appears while the page loads'); });
+  packPlain(R.shortRibs).then(function (u) { arm('D', u); });
+  var photo = testPhoto();
+  var withPhoto = Object.assign({}, R.shortRibs, { img: photo });
+  packPlain(withPhoto).then(function (u) {
+    arm('E', u, ' (photo ' + Math.round(photo.length * 0.75 / 1024) + ' KB)');
+  });
+})();
+</script>
+</body>
+</html>
