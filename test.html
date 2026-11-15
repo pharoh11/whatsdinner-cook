@@ -38,6 +38,12 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
 <a class="test" id="G2" aria-disabled="true"><b>G2</b>Groups as schema.org named lists<span>Preparing…</span></a>
 <a class="test" id="G3" aria-disabled="true"><b>G3</b>Groups as named lists of numbered items<span>Preparing…</span></a>
 <a class="test" id="G4" aria-disabled="true"><b>G4</b>Groups shaped like the step sections<span>Preparing…</span></a>
+<h1 style="margin-top:28px">Video + photo (blueberry scones check)</h1>
+<p>A made-up scone recipe shaped like yours: three sections, a TikTok video and a photo, packed the way the app packs them.</p>
+<a class="test" id="J1" aria-disabled="true"><b>J1</b>Exactly as the app sends it (video + photo)<span>Preparing…</span></a>
+<a class="test" id="J2" aria-disabled="true"><b>J2</b>Video + photo, photo not attached to the video<span>Preparing…</span></a>
+<a class="test" id="J3" aria-disabled="true"><b>J3</b>Photo only, no video<span>Preparing…</span></a>
+<a class="test" id="J4" aria-disabled="true"><b>J4</b>Video + photo, no steps<span>Preparing…</span></a>
 <p class="muted" style="margin-top:18px">And one to learn how cook mode reads a page:</p>
 <a class="test" id="H" aria-disabled="true"><b>H</b>No recipe labels at all (only the visible page)<span>Preparing…</span></a>
 
@@ -102,6 +108,12 @@ a.test[aria-disabled=true]{opacity:.5;pointer-events:none}
   ribs({ groups: 'section', sections: true }, 'G4');
   ribs({ nolabels: true }, 'H', ' \u00b7 does Start Cooking still appear? if so, does it keep the sections?');
   var photo = testPhoto();
+  var tok = { d: '2026-11-05', e: 'https://www.tiktok.com/player/v1/7480211513668635934?controls=1&progress_bar=1&play_button=1&volume_control=1&fullscreen_button=1&timestamp=0&loop=0&autoplay=0&music_info=0&description=0&rel=0&native_context_menu=0&closed_caption=0', u: 'https://www.tiktok.com/@thatrecipe.us/video/7480211513668635934' };
+  function scones(extra, id, note) { packSqueezed(Object.assign({}, R.scones, { img: photo }, extra)).then(function (u) { arm(id, u, note); }); }
+  scones({ v: tok }, 'J1');
+  scones({ v: tok, x: { nothumb: true } }, 'J2');
+  scones({}, 'J3');
+  scones({ v: tok, r: [] }, 'J4');
   var withPhoto = Object.assign({}, R.shortRibs, { img: photo });
   packPlain(withPhoto).then(function (u) {
     arm('E', u, ' (photo ' + Math.round(photo.length * 0.75 / 1024) + ' KB)');

@@ -1,6 +1,23 @@
 // Made-up test recipes for test.html (not from anyone's collection). Short keys match the viewer's packed format:
 // t title, s serves, p prep min, c cook min, i ingredient groups [{g, l: [lines]}], r steps (strings) and headings ({h}).
 window.TEST_RECIPES = {
+  scones: {
+    t: 'Lemon Blueberry Scones',
+    s: 8,
+    i: [
+      { g: 'DRY', l: ['2 cups all-purpose flour', '1 tbsp baking powder', '3/4 tsp salt', '1/2 cup sugar'] },
+      { g: 'WET', l: ['2/3 cup heavy cream', '1 egg', '1 tsp vanilla extract', '1 cup fresh blueberries'] },
+      { g: 'LEMON GLAZE', l: ['1 cup powdered sugar', '1 tbsp melted butter', 'Zest and juice of 1 lemon'] }
+    ],
+    r: [
+      'Heat the oven to 400\u00b0F and line a baking sheet with parchment.',
+      'Whisk the flour, baking powder, salt and sugar in a large bowl.',
+      'In another bowl, whisk the cream, egg and vanilla, then stir it into the dry ingredients until just combined. Fold in the blueberries.',
+      'Pat the dough into an 8-inch round about 1 inch thick and cut it into 8 wedges.',
+      'Bake for 18 to 20 minutes, until golden. Let cool for 10 minutes.',
+      'Stir the powdered sugar, melted butter, lemon zest and juice into a smooth glaze and drizzle it over the scones.'
+    ]
+  },
   chili: {
     t: 'Weeknight Turkey Chili',
     s: 6, p: 15, c: 40,

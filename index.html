@@ -174,7 +174,7 @@ li{margin:.35em 0}
         uploadDate: /^\d{4}-\d{2}-\d{2}$/.test(str(v.d)) ? v.d : new Date().toISOString().slice(0, 10) };
       var contentUrl = safeURL(v.u, false);
       if (contentUrl) vo.contentUrl = contentUrl;
-      if (photo) vo.thumbnailUrl = photo;
+      if (photo && !x.nothumb) vo.thumbnailUrl = photo;
       ld.video = vo;
     }
     if (!x.nolabels) {
